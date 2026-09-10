@@ -1,5 +1,6 @@
 # ── Stage 1: build frontend ────────────────────────────────────────────────
-FROM node:20-slim AS frontend-build
+# linux/amd64 required for Cloudflare Containers
+FROM --platform=linux/amd64 node:20-slim AS frontend-build
 
 WORKDIR /build
 COPY frontend/package.json ./
@@ -9,7 +10,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # ── Stage 2: runtime ───────────────────────────────────────────────────────
-FROM python:3.11-slim
+FROM --platform=linux/amd64 python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1

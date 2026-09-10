@@ -39,7 +39,7 @@ so adding a new agent is just dropping a new folder, no code changes. A **"Defau
   - stream: `delta.content` + `delta.reasoning` in separate fields.
   - **UI shows `content` only**; `reasoning` is dropped by default (optionally rendered in a
     collapsible "Thinking…" panel — see 6.5).
-- Observed `finish_reason:"length"` at low `max_tokens` → default `max_tokens` should be generous (e.g. 1024–2048).
+- Observed `finish_reason:"length"` at low `max_tokens` → default `max_tokens` is **8192** (leaves ~24K for conversation history within the 32K context window).
 
 ### About CantoneseLLM v2 (from the [tech report](https://hon9kon9ize.com/posts/2026-09-10-cantonesellm-v2-tech-report-en))
 
@@ -387,10 +387,10 @@ tab, `rel="noopener noreferrer"`, each with an `aria-label` for a11y):
 ## 8. Configuration (`.env.example`)
 
 ```env
-UPSTREAM_BASE_URL=https://cantonesellm.votee.dev/v1
+UPSTREAM_BASE_URL=https://your-openai-compatible-endpoint/v1
 UPSTREAM_API_KEY=none
-MODEL_ID=CantoneseLLM
-MAX_TOKENS=1024
+MODEL_ID=your-model-id
+MAX_TOKENS=8192
 DAILY_LIMIT=20
 RATE_LIMIT_TZ=Asia/Hong_Kong
 TRUST_FORWARDED_FOR=false        # true only behind a trusted proxy (chat.hon9kon9ize.com is behind one)

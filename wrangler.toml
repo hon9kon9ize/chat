@@ -1,0 +1,29 @@
+name            = "hkchat"
+main            = "worker/src/index.ts"
+compatibility_date = "2026-09-10"
+
+# Non-sensitive config — override per environment below if needed
+[vars]
+MAX_TOKENS    = "8192"
+DAILY_LIMIT   = "20"
+RATE_LIMIT_TZ = "Asia/Hong_Kong"
+
+# Secrets — set once with:
+#   wrangler secret put UPSTREAM_BASE_URL
+#   wrangler secret put UPSTREAM_API_KEY
+#   wrangler secret put MODEL_ID
+
+# Container definition
+[[containers]]
+class_name    = "HKChatContainer"
+image         = "./docker/Dockerfile"
+max_instances = 1
+
+# Durable Object binding that manages container lifecycle
+[[durable_objects.bindings]]
+name       = "HKCHAT"
+class_name = "HKChatContainer"
+
+[[migrations]]
+tag                = "v1"
+new_sqlite_classes = ["HKChatContainer"]
