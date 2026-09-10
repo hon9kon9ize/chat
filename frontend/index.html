@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="yue-HK" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HKChat · CantoneseLLM v2</title>
+  <meta name="description" content="廣東話 AI 助手 — CantoneseLLM v2，全球第一個以廣東話推理嘅大型語言模型。" />
+  <link rel="stylesheet" href="/dist/styles.css" />
+  <style>
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+  </style>
+</head>
+<body class="h-full bg-gray-950 text-gray-100 flex flex-col">
+
+  <!-- ── Top nav ─────────────────────────────────────────────────────────── -->
+  <nav class="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-gray-950/80 backdrop-blur-sm sticky top-0 z-10 flex-shrink-0">
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white select-none">粵</div>
+      <span class="font-semibold text-gray-100 text-sm tracking-tight">HKChat</span>
+      <span class="hidden sm:inline text-gray-500 text-xs">· CantoneseLLM v2</span>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <select
+        id="agent-select"
+        class="text-sm bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent cursor-pointer hover:bg-gray-750 transition-colors"
+      >
+        <option value="default">廣東話助手</option>
+      </select>
+    </div>
+  </nav>
+
+  <!-- ── Error banner ─────────────────────────────────────────────────────── -->
+  <div id="error-banner" class="hidden mx-4 mt-3 flex-shrink-0">
+    <div class="flex items-center gap-2 rounded-lg bg-amber-900/30 border border-amber-700/50 px-4 py-3 text-sm text-amber-300">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+      </svg>
+      <span id="error-text"></span>
+    </div>
+  </div>
+
+  <!-- ── Conversation ──────────────────────────────────────────────────────── -->
+  <div id="conversation" class="flex-1 overflow-y-auto px-4 py-6 space-y-0">
+    <!-- Welcome state (shown when empty) -->
+    <div id="welcome" class="flex flex-col items-center justify-center h-full min-h-[300px] text-center gap-4 select-none">
+      <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-2xl font-bold text-white shadow-lg shadow-indigo-900/30">粵</div>
+      <div>
+        <h1 class="text-xl font-semibold text-gray-200 mb-1">廣東話 AI 助手</h1>
+        <p class="text-sm text-gray-500 max-w-xs">由 CantoneseLLM v2 驅動 — 全球第一個以廣東話推理嘅 AI 模型</p>
+      </div>
+      <div class="grid grid-cols-2 gap-2 mt-2 max-w-sm w-full">
+        <button class="suggestion-btn text-left rounded-xl border border-gray-800 bg-gray-900 hover:bg-gray-800 px-3 py-2.5 text-xs text-gray-400 transition-colors">
+          用廣東話講個笑話 😄
+        </button>
+        <button class="suggestion-btn text-left rounded-xl border border-gray-800 bg-gray-900 hover:bg-gray-800 px-3 py-2.5 text-xs text-gray-400 transition-colors">
+          解釋下量子電腦係咩 🔬
+        </button>
+        <button class="suggestion-btn text-left rounded-xl border border-gray-800 bg-gray-900 hover:bg-gray-800 px-3 py-2.5 text-xs text-gray-400 transition-colors">
+          幫我寫一首廣東話歌詞 🎵
+        </button>
+        <button class="suggestion-btn text-left rounded-xl border border-gray-800 bg-gray-900 hover:bg-gray-800 px-3 py-2.5 text-xs text-gray-400 transition-colors">
+          用Python寫個Fibonacci 💻
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Input area ────────────────────────────────────────────────────────── -->
+  <div class="flex-shrink-0 border-t border-gray-800 bg-gray-950 px-4 pt-3 pb-2">
+
+    <!-- Action row -->
+    <div class="flex items-center gap-2 mb-2">
+      <button
+        id="new-chat-btn"
+        class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        新對話
+      </button>
+      <button
+        id="stop-btn"
+        class="hidden flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-900/20 transition-colors"
+      >
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+          <rect x="6" y="6" width="12" height="12" rx="2"/>
+        </svg>
+        停止生成
+      </button>
+    </div>
+
+    <!-- Textarea + send button -->
+    <div class="flex items-end gap-2">
+      <textarea
+        id="chat-input"
+        rows="1"
+        placeholder="用廣東話傾計…（Enter 發送，Shift+Enter 換行）"
+        class="flex-1 resize-none rounded-xl border border-gray-700 bg-gray-900 px-4 py-3 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors overflow-hidden"
+        style="min-height: 48px; max-height: 160px;"
+      ></textarea>
+      <button
+        id="send-btn"
+        class="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+        aria-label="發送"
+      >
+        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Footer ────────────────────────────────────────────────────────────── -->
+  <footer class="flex-shrink-0 flex items-center justify-center gap-1 py-2 px-4 border-t border-gray-800/50">
+    <span class="hidden sm:inline text-xs text-gray-700 mr-2">hon9kon9ize</span>
+
+    <!-- Discord -->
+    <a href="https://discord.gg/qnZH5yXUh" target="_blank" rel="noopener noreferrer"
+       aria-label="Discord 社群" title="Discord"
+       class="p-1.5 text-gray-600 hover:text-indigo-400 transition-colors rounded-md hover:bg-gray-800/50">
+      <svg class="w-4 h-4" role="img" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942.0209-.0414.0001-.0905-.0421-.1057a13.201 13.201 0 01-1.8725-.8919.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/>
+      </svg>
+    </a>
+
+    <!-- GitHub -->
+    <a href="https://github.com/hon9kon9ize" target="_blank" rel="noopener noreferrer"
+       aria-label="GitHub" title="GitHub"
+       class="p-1.5 text-gray-600 hover:text-gray-300 transition-colors rounded-md hover:bg-gray-800/50">
+      <svg class="w-4 h-4" role="img" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+      </svg>
+    </a>
+
+    <!-- Website / Globe -->
+    <a href="https://hon9kon9ize.com" target="_blank" rel="noopener noreferrer"
+       aria-label="hon9kon9ize 官網" title="Website"
+       class="p-1.5 text-gray-600 hover:text-blue-400 transition-colors rounded-md hover:bg-gray-800/50">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5a17.92 17.92 0 0 1-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
+      </svg>
+    </a>
+
+    <!-- Hugging Face -->
+    <a href="https://huggingface.co/hon9kon9ize" target="_blank" rel="noopener noreferrer"
+       aria-label="Hugging Face" title="Hugging Face"
+       class="p-1.5 text-gray-600 hover:text-yellow-400 transition-colors rounded-md hover:bg-gray-800/50">
+      <svg class="w-4 h-4" role="img" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.229 11.639c-.493-.45-1.009-.52-1.483-.29-.15.075-.286.18-.406.3A7.945 7.945 0 0 0 12 4a7.945 7.945 0 0 0-8.34 7.65c-.12-.12-.256-.225-.406-.3-.474-.23-.99-.16-1.483.29C.782 12.564.5 13.69.5 14.5c0 .72.203 1.33.543 1.77.34.44.83.73 1.457.73h.1A8.002 8.002 0 0 0 12 20a8.002 8.002 0 0 0 9.4-3c.033 0 .067.003.1.003.627 0 1.117-.29 1.457-.73.34-.44.543-1.05.543-1.773 0-.81-.282-1.936-1.271-2.861zM8.5 14a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm7 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm-5.25 2.5h3.5s-.5 2-1.75 2-1.75-2-1.75-2z"/>
+      </svg>
+    </a>
+  </footer>
+
+  <script src="/dist/app.js"></script>
+  <script>
+    // Suggestion buttons
+    document.querySelectorAll('.suggestion-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const input = document.getElementById('chat-input')
+        input.value = this.textContent.trim()
+        input.dispatchEvent(new Event('input'))
+        // Hide welcome after first suggestion click
+        document.getElementById('welcome').style.display = 'none'
+      })
+    })
+  </script>
+</body>
+</html>

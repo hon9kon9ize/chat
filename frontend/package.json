@@ -1,0 +1,18 @@
+{
+  "name": "hkchat-frontend",
+  "private": true,
+  "scripts": {
+    "build": "tailwindcss -i ./src/input.css -o ./dist/styles.css --minify && esbuild src/app.ts --bundle --minify --outfile=dist/app.js",
+    "dev": "concurrently \"tailwindcss -i ./src/input.css -o ./dist/styles.css --watch\" \"esbuild src/app.ts --bundle --outfile=dist/app.js --watch\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "concurrently": "^9.0.0",
+    "esbuild": "^0.24.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.6.0"
+  },
+  "allowScripts": {
+    "esbuild@0.24.2": true
+  }
+}
