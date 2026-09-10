@@ -16,7 +16,7 @@ RATE_LIMIT_TZ = "Asia/Hong_Kong"
 # Container definition
 [[containers]]
 class_name    = "HKChatContainer"
-image         = "./docker/Dockerfile"
+image         = "./Dockerfile"
 max_instances = 1
 
 # Durable Object binding that manages container lifecycle
