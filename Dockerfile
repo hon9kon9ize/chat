@@ -24,7 +24,8 @@ RUN pip install --no-cache-dir \
       "pydantic>=2.0.0" \
       "pydantic-settings>=2.0.0" \
       "strands-agents>=1.55.0" \
-      "strands-agents-tools>=0.8.0"
+      "strands-agents-tools>=0.8.0" \
+      "openai>=1.0.0"
 
 # Copy backend source
 COPY backend/ ./backend/
