@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     upstream_api_key: str = "none"
     model_id: str
     max_tokens: int = 8192
-    daily_limit: int = 20
+    daily_limit: int = 50
     rate_limit_tz: str = "Asia/Hong_Kong"
     trust_forwarded_for: bool = False
     db_path: str = "./usage.db"

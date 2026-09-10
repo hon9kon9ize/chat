@@ -13,6 +13,7 @@ dependencies = [
   "pydantic-settings>=2.0.0",
   "strands-agents>=1.55.0",
   "strands-agents-tools>=0.8.0",
+  "openai>=3.13.0",
 ]
 
 [project.scripts]

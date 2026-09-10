@@ -61,7 +61,11 @@ def check_and_increment(ip: str) -> int:
         if count >= limit:
             raise HTTPException(
                 status_code=429,
-                detail={"error": "daily_limit_reached", "limit": limit},
+                detail={
+                    "error": "daily_limit_reached",
+                    "limit": limit,
+                    "message": "今日嘅使用額度已用完，請聽日再試（額度於每日 00:00 重設）。",
+                },
                 headers={
                     "X-RateLimit-Limit": str(limit),
                     "X-RateLimit-Remaining": "0",

@@ -8,18 +8,26 @@ export class HKChatContainer extends Container {
   requiredPorts = [8000];
 
   constructor(ctx: DurableObjectState<unknown>, env: Env) {
-    super(ctx as DurableObjectState<{}>, env);
-    this.envVars = {
+    const envVars = {
       UPSTREAM_BASE_URL: env.UPSTREAM_BASE_URL,
       UPSTREAM_API_KEY: env.UPSTREAM_API_KEY ?? "none",
       MODEL_ID: env.MODEL_ID,
       MAX_TOKENS: env.MAX_TOKENS ?? "8192",
-      DAILY_LIMIT: env.DAILY_LIMIT ?? "20",
+      DAILY_LIMIT: env.DAILY_LIMIT ?? "50",
       RATE_LIMIT_TZ: env.RATE_LIMIT_TZ ?? "Asia/Hong_Kong",
       TRUST_FORWARDED_FOR: "false",
       DB_PATH: "/tmp/usage.db",
       AGENTS_DIR: "/app/agents",
     };
+    super(ctx as DurableObjectState<{}>, env, {
+      defaultPort: 8000,
+      sleepAfter: "5m",
+      envVars,
+    });
+    this.defaultPort = 8000;
+    this.requiredPorts = [8000];
+    this.sleepAfter = "5m";
+    this.envVars = envVars;
   }
 }
 

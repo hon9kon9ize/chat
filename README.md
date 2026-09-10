@@ -1,4 +1,4 @@
-# HKChat
+# CantoneseLLM Chat
 
 廣東話 AI 聊天介面，由 [CantoneseLLM v2](https://hon9kon9ize.com/posts/2026-09-10-cantonesellm-v2-tech-report-en) 驅動 — 全球第一個以廣東話推理的大型語言模型。
 

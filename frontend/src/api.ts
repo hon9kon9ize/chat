@@ -38,7 +38,8 @@ export function streamChat(
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         if (res.status === 429) {
-          onError("今日已達到每日限額（20次），請明日再試。")
+          const customMsg = body?.detail?.message
+          onError(customMsg || "今日嘅使用額度已用完，請聽日再試（額度於每日 00:00 重設）。")
         } else if (body?.detail?.error === "unknown_agent") {
           onError("未知助手，請重新整理頁面。")
         } else {

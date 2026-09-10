@@ -62,7 +62,7 @@ async def list_agents():
 async def limit_info(request: Request):
     ip = get_client_ip(request)
     remaining, limit = get_remaining(ip)
-    return LimitInfo(limit=limit, remaining=remaining, reset_at="midnight HKT")
+    return LimitInfo(limit=limit, remaining=remaining, reset_at="00:00 HKT")
 
 
 @app.post("/api/chat")
@@ -85,6 +85,11 @@ async def chat(req: ChatRequest, request: Request):
                     yield _sse({"type": "delta", "text": text})
             yield _sse({"type": "done"})
         except Exception as exc:
+            # If the model hits max tokens, strands raises MaxTokensReachedException
+            # but partial content was already streamed. Just send done.
+            if exc.__class__.__name__ == "MaxTokensReachedException":
+                yield _sse({"type": "done"})
+                return
             logger.error("Stream error for agent=%s ip=%s: %s", req.agent, ip, exc)
             yield _sse({"type": "error", "message": "回應出現錯誤，請稍後再試。"})
 

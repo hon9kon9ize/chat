@@ -6,7 +6,7 @@ compatibility_flags  = ["nodejs_compat"]
 # Non-sensitive config — override per environment below if needed
 [vars]
 MAX_TOKENS    = "8192"
-DAILY_LIMIT   = "20"
+DAILY_LIMIT   = "50"
 RATE_LIMIT_TZ = "Asia/Hong_Kong"
 
 # Secrets — set once with:
