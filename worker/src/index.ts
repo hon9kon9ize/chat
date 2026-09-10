@@ -37,6 +37,15 @@ export interface Env {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    return getContainer(env.HKCHAT).fetch(request);
+    try {
+      return await getContainer(env.HKCHAT).fetch(request);
+    } catch (e) {
+      const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+      console.error("hkchat worker error:", msg);
+      return new Response(JSON.stringify({ error: msg }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
   },
 };
