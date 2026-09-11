@@ -1,4 +1,4 @@
-import { fetchAgents, streamChat, type AgentInfo, type Message } from "./api"
+import { fetchAgents, fetchLimit, streamChat, type AgentInfo, type Message } from "./api"
 
 // ── State ────────────────────────────────────────────────────────────────────
 
@@ -6,6 +6,8 @@ let messages: Message[] = []
 let streaming = false
 let abortController: AbortController | null = null
 let selectedAgentId = "default"
+let currentRemaining: number | null = null
+let currentLimit: number | null = null
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
 
@@ -17,6 +19,40 @@ const newChatBtn = document.getElementById("new-chat-btn") as HTMLButtonElement
 const stopBtn = document.getElementById("stop-btn") as HTMLButtonElement
 const errorBanner = document.getElementById("error-banner") as HTMLDivElement
 const errorText = document.getElementById("error-text") as HTMLSpanElement
+const quotaCountEl = document.getElementById("quota-count") as HTMLSpanElement | null
+const quotaDotEl = document.getElementById("quota-dot") as HTMLSpanElement | null
+const inputQuotaRemainingEl = document.getElementById("input-quota-remaining") as HTMLSpanElement | null
+
+// ── Quota ────────────────────────────────────────────────────────────────────
+
+function updateQuotaUI(remaining: number, limit: number): void {
+  currentRemaining = remaining
+  currentLimit = limit
+
+  if (quotaCountEl) {
+    quotaCountEl.textContent = `${remaining} / ${limit}`
+  }
+  if (inputQuotaRemainingEl) {
+    inputQuotaRemainingEl.textContent = `${remaining}`
+  }
+  if (quotaDotEl) {
+    quotaDotEl.className =
+      "inline-block w-1.5 h-1.5 rounded-full " +
+      (remaining === 0 ? "bg-red-500" : remaining <= 10 ? "bg-amber-400" : "bg-emerald-400")
+  }
+}
+
+async function loadQuota(): Promise<void> {
+  try {
+    const info = await fetchLimit()
+    updateQuotaUI(info.remaining, info.limit)
+    if (info.remaining === 0) {
+      showErrorBanner("今日嘅使用額度已用完，請聽日再試（額度於每日 00:00 重設）。")
+    }
+  } catch {
+    // Fallback: keep placeholders if fetch fails
+  }
+}
 
 // ── Agents ───────────────────────────────────────────────────────────────────
 
@@ -120,6 +156,11 @@ function send(): void {
   const text = inputEl.value.trim()
   if (!text || streaming) return
 
+  if (currentRemaining !== null && currentRemaining <= 0) {
+    showErrorBanner("今日嘅使用額度已用完，請聽日再試（額度於每日 00:00 重設）。")
+    return
+  }
+
   hideErrorBanner()
   inputEl.value = ""
   resizeInput()
@@ -154,6 +195,12 @@ function send(): void {
     (errMsg) => {
       bubble.finalize()
       addErrorBubble(errMsg)
+    },
+    (remaining, limit) => {
+      updateQuotaUI(remaining, limit)
+      if (remaining === 0) {
+        showErrorBanner("今日嘅使用額度已用完，請聽日再試（額度於每日 00:00 重設）。")
+      }
     }
   )
 }
@@ -227,4 +274,5 @@ newChatBtn.addEventListener("click", newChat)
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 loadAgents()
+loadQuota()
 inputEl.focus()

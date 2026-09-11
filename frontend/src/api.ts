@@ -15,6 +15,18 @@ export async function fetchAgents(): Promise<AgentInfo[]> {
   return res.json()
 }
 
+export interface LimitInfo {
+  limit: number
+  remaining: number
+  reset_at: string
+}
+
+export async function fetchLimit(): Promise<LimitInfo> {
+  const res = await fetch("/api/limit")
+  if (!res.ok) throw new Error("Failed to load limit")
+  return res.json()
+}
+
 export type SSEEvent =
   | { type: "delta"; text: string }
   | { type: "done" }
@@ -26,7 +38,8 @@ export function streamChat(
   signal: AbortSignal,
   onDelta: (text: string) => void,
   onDone: () => void,
-  onError: (msg: string) => void
+  onError: (msg: string) => void,
+  onLimitUpdate?: (remaining: number, limit: number) => void
 ): void {
   fetch("/api/chat", {
     method: "POST",
@@ -35,9 +48,18 @@ export function streamChat(
     signal,
   })
     .then(async (res) => {
+      const remHeader = res.headers.get("X-RateLimit-Remaining")
+      const limitHeader = res.headers.get("X-RateLimit-Limit")
+      if (remHeader !== null && limitHeader !== null && onLimitUpdate) {
+        onLimitUpdate(parseInt(remHeader, 10), parseInt(limitHeader, 10))
+      }
+
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         if (res.status === 429) {
+          if (onLimitUpdate) {
+            onLimitUpdate(0, limitHeader ? parseInt(limitHeader, 10) : 50)
+          }
           const customMsg = body?.detail?.message
           onError(customMsg || "今日嘅使用額度已用完，請聽日再試（額度於每日 00:00 重設）。")
         } else if (body?.detail?.error === "unknown_agent") {
