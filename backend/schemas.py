@@ -16,11 +16,11 @@ class ChatRequest(BaseModel):
     def validate_messages(cls, v: list[Message]) -> list[Message]:
         if not v:
             raise ValueError("messages cannot be empty")
-        if len(v) > 100:
-            raise ValueError("too many messages")
+        if len(v) > 30:
+            raise ValueError("too many messages (max 30)")
         for msg in v:
-            if len(msg.content) > 16000:
-                raise ValueError("message too long")
+            if len(msg.content) > 4000:
+                raise ValueError("message too long (max 4000 chars)")
         return v
 
     @field_validator("agent")

@@ -1,3 +1,4 @@
+import ipaddress
 import sqlite3
 import threading
 from datetime import datetime
@@ -32,18 +33,35 @@ def _today() -> str:
     return datetime.now(ZoneInfo(settings.rate_limit_tz)).strftime("%Y-%m-%d")
 
 
+def normalize_ip(raw_ip: str) -> str:
+    """Normalize IP addresses. IPv6 addresses are masked to /64 subnet to prevent rotation abuse."""
+    if not raw_ip or raw_ip == "unknown":
+        return "unknown"
+    try:
+        addr = ipaddress.ip_address(raw_ip.strip())
+        if addr.version == 6:
+            # Mask IPv6 to /64 network prefix
+            net = ipaddress.ip_network(f"{addr}/64", strict=False)
+            return str(net.network_address)
+        return str(addr)
+    except ValueError:
+        return raw_ip.strip()
+
+
 def get_client_ip(request: Request) -> str:
     # Cloudflare sets this with the real visitor IP — prefer it.
+    raw_ip = ""
     cf_ip = request.headers.get("CF-Connecting-IP")
     if cf_ip:
-        return cf_ip.strip()
-
-    if settings.trust_forwarded_for:
+        raw_ip = cf_ip.strip()
+    elif settings.trust_forwarded_for:
         xff = request.headers.get("X-Forwarded-For", "")
         if xff:
-            return xff.split(",")[0].strip()
+            raw_ip = xff.split(",")[0].strip()
+    else:
+        raw_ip = request.client.host if request.client else "unknown"
 
-    return request.client.host if request.client else "unknown"
+    return normalize_ip(raw_ip)
 
 
 def check_and_increment(ip: str) -> int:
