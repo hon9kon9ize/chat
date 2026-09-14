@@ -1,15 +1,37 @@
 {
-  "name": "hkchat-frontend",
+  "name": "CantoChat-frontend",
   "private": true,
   "scripts": {
-    "build": "tailwindcss -i ./src/input.css -o ./dist/styles.css --minify && esbuild src/app.ts --bundle --minify --outfile=dist/app.js",
-    "dev": "concurrently \"tailwindcss -i ./src/input.css -o ./dist/styles.css --watch\" \"esbuild src/app.ts --bundle --outfile=dist/app.js --watch\""
+    "build": "tailwindcss -i ./src/input.css -o ./dist/styles.css --minify && esbuild src/main.tsx --bundle --minify --jsx=automatic --outfile=dist/app.js",
+    "dev": "concurrently \"tailwindcss -i ./src/input.css -o ./dist/styles.css --watch\" \"esbuild src/main.tsx --bundle --jsx=automatic --outfile=dist/app.js --watch\""
+  },
+  "dependencies": {
+    "@radix-ui/react-use-controllable-state": "^1.2.6",
+    "@streamdown/cjk": "^1.0.3",
+    "@streamdown/code": "^1.1.1",
+    "@streamdown/math": "^1.0.2",
+    "@streamdown/mermaid": "^1.0.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.45.0",
+    "radix-ui": "^1.6.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "shiki": "^4.4.3",
+    "streamdown": "^2.6.0",
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@types/json-schema": "^7.0.15",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "ai": "^7.0.97",
+    "type-fest": "^5.9.0",
     "concurrently": "^9.0.0",
     "esbuild": "^0.24.0",
     "tailwindcss": "^3.4.0",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.6.0"
   },
   "allowScripts": {

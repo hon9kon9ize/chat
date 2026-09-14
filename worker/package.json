@@ -1,5 +1,5 @@
 {
-  "name": "hkchat-worker",
+  "name": "CantoChat-worker",
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",

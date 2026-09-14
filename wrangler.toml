@@ -15,16 +15,25 @@ RATE_LIMIT_TZ = "Asia/Hong_Kong"
 #   wrangler secret put MODEL_ID
 
 # Container definition
+# `name` is pinned to the already-existing container application (created back
+# when the class was still called HKChatContainer) so the Durable Object class
+# rename below doesn't try to spin up a second container app on the same DO
+# namespace (Cloudflare rejects that with DURABLE_OBJECT_ALREADY_HAS_APPLICATION).
 [[containers]]
-class_name    = "HKChatContainer"
+name          = "hkchat-hkchatcontainer"
+class_name    = "CantoChatContainer"
 image         = "./Dockerfile"
 max_instances = 2
 
 # Durable Object binding that manages container lifecycle
 [[durable_objects.bindings]]
 name       = "HKCHAT"
-class_name = "HKChatContainer"
+class_name = "CantoChatContainer"
 
 [[migrations]]
 tag                = "v1"
 new_sqlite_classes = ["HKChatContainer"]
+
+[[migrations]]
+tag             = "v2"
+renamed_classes = [{ from = "HKChatContainer", to = "CantoChatContainer" }]

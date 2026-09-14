@@ -1,3 +1,52 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Minimal shadcn/ui semantic tokens (dark values only — app is dark-mode only).
+   Backs the hand-copied Badge/CodeBlock primitives under src/ui/ and
+   src/ai-elements/ (ported from https://github.com/vercel/ai-elements). */
+:root {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
+}
+
+/* Text shimmer sweep, used by src/ai-elements/shimmer.tsx for the "Thinking…"
+   label. The upstream AI Elements version uses the `motion` library for this;
+   a plain CSS background-position keyframe gets the same look for one line of
+   text without pulling in a whole animation library. */
+@keyframes text-shimmer-sweep {
+  from {
+    background-position: 100% center;
+  }
+  to {
+    background-position: 0% center;
+  }
+}
+.text-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    hsl(var(--muted-foreground)) 40%,
+    hsl(var(--foreground)),
+    hsl(var(--muted-foreground)) 60%
+  );
+  background-size: 250% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: text-shimmer-sweep linear infinite;
+}

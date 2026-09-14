@@ -29,18 +29,30 @@ export async function fetchLimit(): Promise<LimitInfo> {
 
 export type SSEEvent =
   | { type: "delta"; text: string }
+  | { type: "reasoning"; text: string }
+  | { type: "tool_use"; tool_use_id: string; name: string | null; input: unknown }
+  | { type: "tool_result"; tool_use_id: string | null; status: string | null; content: unknown }
   | { type: "done" }
   | { type: "error"; message: string }
+
+export interface StreamChatCallbacks {
+  onDelta: (text: string) => void
+  onReasoning?: (text: string) => void
+  onToolUse?: (toolUseId: string, name: string | null, input: unknown) => void
+  onToolResult?: (toolUseId: string | null, status: string | null, content: unknown) => void
+  onDone: () => void
+  onError: (msg: string) => void
+  onLimitUpdate?: (remaining: number, limit: number) => void
+}
 
 export function streamChat(
   agentId: string,
   messages: Message[],
   signal: AbortSignal,
-  onDelta: (text: string) => void,
-  onDone: () => void,
-  onError: (msg: string) => void,
-  onLimitUpdate?: (remaining: number, limit: number) => void
+  callbacks: StreamChatCallbacks
 ): void {
+  const { onDelta, onReasoning, onToolUse, onToolResult, onDone, onError, onLimitUpdate } = callbacks
+
   fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -90,6 +102,9 @@ export function streamChat(
           try {
             const evt = JSON.parse(raw) as SSEEvent
             if (evt.type === "delta") onDelta(evt.text)
+            else if (evt.type === "reasoning") onReasoning?.(evt.text)
+            else if (evt.type === "tool_use") onToolUse?.(evt.tool_use_id, evt.name, evt.input)
+            else if (evt.type === "tool_result") onToolResult?.(evt.tool_use_id, evt.status, evt.content)
             else if (evt.type === "done") onDone()
             else if (evt.type === "error") { onError(evt.message); onDone() }
           } catch {

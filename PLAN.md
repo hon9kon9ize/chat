@@ -1,4 +1,4 @@
-# HKChat — OpenAI-like Chat Interface for CantoneseLLM v2
+# CantoChat — OpenAI-like Chat Interface for CantoneseLLM v2
 
 A minimal ChatGPT-style web app for **CantoneseLLM v2**, deployed at
 **`chat.hon9kon9ize.com`**. The browser talks only to our own backend; the backend runs
@@ -56,7 +56,7 @@ so adding a new agent is just dropping a new folder, no code changes. A **"Defau
   machine-translated (no native Cantonese CoT data exists); a measurable cross-language gap remains
   (math pass rate −0.247, code −0.105 when problems shift from English to Cantonese). Scores
   **73.16 on HKCanto-Eval** (−4.13% vs the official chat model) — the trade-off for reasoning in Cantonese.
-- **Implication for HKChat:** the product is Cantonese-first. `AGENTS.md` should instruct the agent
+- **Implication for CantoChat:** the product is Cantonese-first. `AGENTS.md` should instruct the agent
   to answer in Traditional-script Cantonese, and default prompts/placeholder copy should be Cantonese.
 
 > ⚠️ This endpoint lives **only in backend config**. Never ship it to the frontend bundle.
@@ -100,7 +100,7 @@ so adding a new agent is just dropping a new folder, no code changes. A **"Defau
 ## 5. Repository Layout
 
 ```
-hkchat/
+CantoChat/
 ├─ PLAN.md
 ├─ README.md
 ├─ .env.example
@@ -321,7 +321,7 @@ async def chat(req: ChatRequest, request: Request):
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
-│  HKChat · CantoneseLLM v2                    [ Default ▾ ]      │  ← top nav (agent dropdown top-right)
+│  CantoChat · CantoneseLLM v2                    [ Default ▾ ]      │  ← top nav (agent dropdown top-right)
 ├───────────────────────────────────────────────────────────────┤
 │                                                                 │
 │   user:   用廣東話講個笑話                                       │

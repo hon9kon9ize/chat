@@ -2,7 +2,7 @@ import { Container, getContainer } from "@cloudflare/containers";
 
 // Defined before Env to break the circular reference.
 // envVars are injected from the Worker env bindings in the constructor.
-export class HKChatContainer extends Container {
+export class CantoChatContainer extends Container {
   defaultPort = 8000;
   sleepAfter = "5m";
   requiredPorts = [8000];
@@ -72,7 +72,8 @@ export class HKChatContainer extends Container {
 }
 
 export interface Env {
-  HKCHAT: DurableObjectNamespace<HKChatContainer>;
+  HKCHAT?: DurableObjectNamespace<CantoChatContainer>;
+  CantoChat?: DurableObjectNamespace<CantoChatContainer>;
   // Secrets — set with: wrangler secret put <NAME>
   UPSTREAM_BASE_URL: string;
   UPSTREAM_API_KEY: string;
@@ -94,6 +95,52 @@ function normalizeIp(rawIp: string): string {
     return `${prefix}::/64`;
   }
   return trimmed;
+}
+
+const CONTAINER_FETCH_MAX_ATTEMPTS = 3;
+// @cloudflare/containers' own containerFetch() implementation can throw these
+// on a cold start (container was asleep — see `sleepAfter` above) even after
+// it reports the container healthy: a request lands in the brief window
+// before the freshly-started firecracker VM is actually ready to accept TCP
+// connections. Both message shapes below come straight from that library's
+// own error construction, including one it phrases as "...try again" itself —
+// so a quiet retry here is the intended mitigation, not a workaround for a
+// bug in our own code.
+const CONTAINER_RETRYABLE_PATTERN = /network connection lost|container is not running|suddenly disconnected/i;
+
+async function fetchContainerWithRetry(
+  containerStub: { fetch(req: Request): Promise<Response> },
+  request: Request
+): Promise<Response> {
+  // A Request body stream can only be consumed once, so buffer it up front
+  // to safely reconstruct a fresh Request on each retry.
+  const hasBody = request.method !== "GET" && request.method !== "HEAD";
+  const bodyBuf = hasBody ? await request.clone().arrayBuffer() : undefined;
+
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= CONTAINER_FETCH_MAX_ATTEMPTS; attempt++) {
+    const attemptReq =
+      bodyBuf !== undefined
+        ? new Request(request.url, { method: request.method, headers: request.headers, body: bodyBuf })
+        : request;
+
+    try {
+      const res = await containerStub.fetch(attemptReq);
+      if (res.status === 500 && attempt < CONTAINER_FETCH_MAX_ATTEMPTS) {
+        const text = await res.clone().text().catch(() => "");
+        if (CONTAINER_RETRYABLE_PATTERN.test(text)) {
+          await new Promise((r) => setTimeout(r, 300 * attempt));
+          continue;
+        }
+      }
+      return res;
+    } catch (e) {
+      lastError = e;
+      if (attempt === CONTAINER_FETCH_MAX_ATTEMPTS) throw e;
+      await new Promise((r) => setTimeout(r, 300 * attempt));
+    }
+  }
+  throw lastError;
 }
 
 function getToday(tz: string): string {
@@ -120,7 +167,11 @@ export default {
       const rawIp = request.headers.get("CF-Connecting-IP") || "unknown";
       const ip = normalizeIp(rawIp);
 
-      const containerStub = getContainer(env.HKCHAT);
+      const containerBinding = env.HKCHAT ?? env.CantoChat;
+      if (!containerBinding) {
+        throw new Error("Missing Durable Object container binding (CantoChat)");
+      }
+      const containerStub = getContainer(containerBinding);
 
       if (url.pathname === "/api/limit" && request.method === "GET") {
         const info = await containerStub.getRateLimit(ip, limit, day);
@@ -140,7 +191,11 @@ export default {
         );
       }
 
-      if (url.pathname === "/api/chat" && request.method === "POST") {
+      const isRateLimited =
+        (url.pathname === "/api/chat" && request.method === "POST") ||
+        url.pathname === "/api/ping";
+
+      if (isRateLimited) {
         const check = await containerStub.checkRateLimit(ip, limit, day);
         if (!check.allowed) {
           return new Response(
@@ -163,7 +218,7 @@ export default {
           );
         }
 
-        const res = await containerStub.fetch(request);
+        const res = await fetchContainerWithRetry(containerStub, request);
         const headers = new Headers(res.headers);
         headers.set("X-RateLimit-Limit", String(limit));
         headers.set("X-RateLimit-Remaining", String(check.remaining));
@@ -174,10 +229,10 @@ export default {
         });
       }
 
-      return await containerStub.fetch(request);
+      return await fetchContainerWithRetry(containerStub, request);
     } catch (e) {
       const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
-      console.error("hkchat worker error:", msg);
+      console.error("CantoChat worker error:", msg);
       return new Response(JSON.stringify({ error: msg }), {
         status: 500,
         headers: { "Content-Type": "application/json" },

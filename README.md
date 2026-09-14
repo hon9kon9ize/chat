@@ -9,7 +9,7 @@
 ## Architecture
 
 ```
-Browser → Cloudflare Worker → HKChatContainer (Durable Object)
+Browser → Cloudflare Worker → CantoChatContainer (Durable Object)
                                       ↓ Docker container (FastAPI + Strands)
                                       ↓ agents/<name>/  (AGENTS.md, skills/, mcp.json)
                                       ↓ CantoneseLLM v2 API (OpenAI-compatible)
@@ -23,7 +23,7 @@ Browser → Cloudflare Worker → HKChatContainer (Durable Object)
 ## Project Layout
 
 ```
-hkchat/
+CantoChat/
 ├── agents/                  # Agent definitions (auto-discovered)
 │   └── default/
 │       ├── AGENTS.md        # System instructions
