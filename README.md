@@ -119,6 +119,25 @@ npx wrangler containers list
 | `AGENTS_DIR` | `./agents` | Path to agent definitions |
 | `DB_PATH` | `/tmp/usage.db` | SQLite rate-limit store |
 
+## Chat Datastore (Cloudflare D1)
+
+Chat interactions (user inputs, assistant responses, thinking traces, agent IDs, and response latencies) are logged asynchronously to **Cloudflare D1** (`hkchat-db`) via Worker stream tapping (`ctx.waitUntil`).
+
+### Querying Logs via Wrangler CLI
+
+```bash
+# Query the latest 10 chat logs
+npx --prefix worker wrangler d1 execute hkchat-db --config wrangler.toml --remote \
+  --command="SELECT created_at, agent, user_input, response, duration_ms FROM chat_logs ORDER BY created_at DESC LIMIT 10;"
+
+# Count interactions by agent
+npx --prefix worker wrangler d1 execute hkchat-db --config wrangler.toml --remote \
+  --command="SELECT agent, count(*) as total_requests FROM chat_logs GROUP BY agent;"
+```
+
+You can also browse and query logs in the Cloudflare Dashboard under **Workers & Pages > D1 > hkchat-db > Tables > chat_logs**.
+
+
 ## Community
 
 | | |

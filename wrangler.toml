@@ -14,6 +14,13 @@ RATE_LIMIT_TZ = "Asia/Hong_Kong"
 #   wrangler secret put UPSTREAM_API_KEY
 #   wrangler secret put MODEL_ID
 
+# D1 Database binding for storing user input and response
+[[d1_databases]]
+binding       = "DB"
+database_name = "hkchat-db"
+database_id   = "b730264e-0ba1-4da0-9564-107ce9fd5c3b"
+
+
 # Container definition
 # `name` is pinned to the already-existing container application (created back
 # when the class was still called HKChatContainer) so the Durable Object class

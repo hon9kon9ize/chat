@@ -1,9 +1,10 @@
 {
   "name": "CantoChat-worker",
-  "private": true,
+  "type": "module",
   "scripts": {
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
+    "test": "node --experimental-strip-types --test src/db.test.ts",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {

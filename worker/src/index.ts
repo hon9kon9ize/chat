@@ -1,4 +1,5 @@
 import { Container, getContainer } from "@cloudflare/containers";
+import { interceptAndLogStream, saveChatLog } from "./db";
 
 // Defined before Env to break the circular reference.
 // envVars are injected from the Worker env bindings in the constructor.
@@ -74,6 +75,7 @@ export class CantoChatContainer extends Container {
 export interface Env {
   HKCHAT?: DurableObjectNamespace<CantoChatContainer>;
   CantoChat?: DurableObjectNamespace<CantoChatContainer>;
+  DB?: D1Database;
   // Secrets — set with: wrangler secret put <NAME>
   UPSTREAM_BASE_URL: string;
   UPSTREAM_API_KEY: string;
@@ -84,7 +86,7 @@ export interface Env {
   RATE_LIMIT_TZ: string;
 }
 
-function normalizeIp(rawIp: string): string {
+export function normalizeIp(rawIp: string): string {
   if (!rawIp || rawIp === "unknown") return "unknown";
   const trimmed = rawIp.trim();
   // Check if IPv6 (contains colons)
@@ -157,7 +159,7 @@ function getToday(tz: string): string {
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     try {
       const url = new URL(request.url);
       const limit = parseInt(env.DAILY_LIMIT ?? "50", 10);
@@ -191,11 +193,7 @@ export default {
         );
       }
 
-      const isRateLimited =
-        (url.pathname === "/api/chat" && request.method === "POST") ||
-        url.pathname === "/api/ping";
-
-      if (isRateLimited) {
+      if (url.pathname === "/api/ping" && (request.method === "POST" || request.method === "GET")) {
         const check = await containerStub.checkRateLimit(ip, limit, day);
         if (!check.allowed) {
           return new Response(
@@ -223,6 +221,94 @@ export default {
         headers.set("X-RateLimit-Limit", String(limit));
         headers.set("X-RateLimit-Remaining", String(check.remaining));
         return new Response(res.body, {
+          status: res.status,
+          statusText: res.statusText,
+          headers,
+        });
+      }
+
+      if (url.pathname === "/api/chat" && request.method === "POST") {
+        const startTime = Date.now();
+        let agent = "default";
+        let userInput = "";
+        let messagesJson = "[]";
+
+        try {
+          const cloned = request.clone();
+          const parsed = (await cloned.json()) as {
+            agent?: string;
+            messages?: Array<{ role?: string; content?: string }>;
+          };
+          if (parsed && typeof parsed === "object") {
+            if (typeof parsed.agent === "string") agent = parsed.agent;
+            if (Array.isArray(parsed.messages)) {
+              messagesJson = JSON.stringify(parsed.messages);
+              const userMsgs = parsed.messages.filter((m) => m && m.role === "user");
+              if (userMsgs.length > 0) {
+                userInput = String(userMsgs[userMsgs.length - 1].content ?? "");
+              }
+            }
+          }
+        } catch {
+          // invalid body or not json
+        }
+
+        const check = await containerStub.checkRateLimit(ip, limit, day);
+        if (!check.allowed) {
+          return new Response(
+            JSON.stringify({
+              detail: {
+                error: "daily_limit_reached",
+                limit,
+                message: "今日嘅使用額度已用完，請聽日再試（額度於每日 00:00 重設）。",
+              },
+            }),
+            {
+              status: 429,
+              headers: {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": String(limit),
+                "X-RateLimit-Remaining": "0",
+                "Retry-After": "86400",
+              },
+            }
+          );
+        }
+
+        const res = await fetchContainerWithRetry(containerStub, request);
+        const headers = new Headers(res.headers);
+        headers.set("X-RateLimit-Limit", String(limit));
+        headers.set("X-RateLimit-Remaining", String(check.remaining));
+
+        let body = res.body;
+        if (res.status === 200 && res.body && env.DB) {
+          body = interceptAndLogStream(res.body, {
+            db: env.DB,
+            ctx,
+            ip,
+            agent,
+            userInput,
+            messagesJson,
+            startTime,
+          });
+        } else if (res.status !== 200 && env.DB) {
+          ctx.waitUntil(
+            saveChatLog(env.DB, {
+              id: crypto.randomUUID(),
+              createdAt: new Date().toISOString(),
+              ip,
+              agent,
+              userInput,
+              response: "",
+              messagesJson,
+              status: "error",
+              errorMessage: `HTTP ${res.status}: ${res.statusText}`,
+              durationMs: Date.now() - startTime,
+            })
+          );
+        }
+
+        return new Response(body, {
           status: res.status,
           statusText: res.statusText,
           headers,
